@@ -10,7 +10,7 @@
 #define stepPin 11    // Pins to send instructions to the A4988 driver
 #define dirPin  12
 
-#define servoPin 5    // Pin for connecting the servo
+#define servoPin 6    // Pin for connecting the servo
 #define servoMin 100  // Minimum Pulse Width in microseconds
 #define servoMax 200  // Maximum Pulse Width in microseconds
 
@@ -23,7 +23,7 @@ struct spVector{
 // Variables for driving the stepper motor
 int  dely    = 1000;
 int  dir     = 0;  // 0 for clockwise rot, 1 for anticlockwise rot 
-int  stpSize = 2;
+int  stpSize = 4;
 
 bool homeMode = 0;
 int  limitSW  = 0;
@@ -36,11 +36,11 @@ Servo servo;
 
 spVector currVec = {.phi=0, .theta=0};
 
-spVector P0T0  = {.phi=0, .theta=0};
-spVector P15T0 = {.phi=0, .theta=0};
-spVector P30T0 = {.phi=0, .theta=0};
-spVector P45T0 = {.phi=0, .theta=0};
-spVector P60T0 = {.phi=0, .theta=0};
+spVector P0T0  = {.phi=90, .theta=0};
+spVector P15T0 = {.phi=90, .theta=30};
+spVector P30T0 = {.phi=90, .theta=60};
+spVector P45T0 = {.phi=90, .theta=90};
+spVector P60T0 = {.phi=90, .theta=120};
 
 
 void setup() {
@@ -51,9 +51,9 @@ void setup() {
     pinMode(MS3,      OUTPUT);
     pinMode(servoPin, OUTPUT);
 
-    pinMode(limitSW, INPUT);
+    pinMode(limitSWPin, INPUT);
 
-    servo.attatch(servoPin, servoMin, servoMax);
+    servo.attach(servoPin, servoMin, servoMax);
 
     Serial.begin(9600);
 
@@ -66,23 +66,26 @@ void loop() {
 void home() {
     const int buffer=10;
     int i;
+
     // drive one direction at full speed until limitA is hit
     digitalWrite(dirPin, 1); setStpSize(1);
-    while (!digitalRead(limitSW)) {step();}
+    while (!digitalRead(limitSWPin)) {step();}
 
     // drive back slowly until switch is unpressed, continue for buffer steps
     digitalWrite(dirPin, 0); setStpSize(stpSize);
-    while (digitalRead(limitSW)) {step();}
+    while (digitalRead(limitSWPin)) {step();}
     for   (i=0; i<buffer; i++) {step();}
 
     // drive towards limitA slowly, stop at limit, set as origin
     digitalWrite(dirPin, 1); setStpSize(stpSize);
-    while (!digitalRead(limitSW)) {step();}
+    while (!digitalRead(limitSWPin)) {step();}
     totSteps = 0;
 
     // drive to the other side at slow speed until limitB
     digitalWrite(dirPin, 0); setStpSize(stpSize);
-    while (!digitalRead(limitSW)) {step(); totSteps++;}
+    while (digitalRead(limitSWPin))  {step(); totSteps++;} // Buffer to allow for 'unclick'
+    while (!digitalRead(limitSWPin)) {step(); totSteps++;}
+    Serial.println(totSteps);
     
     // Set known variables
     currVec.theta = -totAng/2.0;
@@ -106,7 +109,7 @@ int drive(spVector vector) {
     int i; bool interrupt = 0;
 
     // ---------- Driving Servo Motor ----------
-    servo.write(vector.phi)
+    servo.write(vector.phi);
 
     // ---------- Driving Stepper Motor ----------
     // Calculate Variables
@@ -118,7 +121,7 @@ int drive(spVector vector) {
 
     digitalWrite(dirPin, dir); setStpSize(stpSize);
     for (i=0; i<totSteps; i++) {
-        if (digitalRead(limitSW)) {interrupt=1; break;} // if limit switch is pressed too early, raise interrupt, break
+        if (digitalRead(limitSWPin)) {interrupt=1; break;} // if limit switch is pressed too early, raise interrupt, break
         step();
     }
 
