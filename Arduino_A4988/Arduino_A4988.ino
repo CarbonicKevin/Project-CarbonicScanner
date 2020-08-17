@@ -1,19 +1,24 @@
+#include <Servo.h>
 #include <SoftwareSerial.h>
 
-#define limitSWPin 6
+#define limitSWPin 7  // pin for reading the limit switches (Pull Down; active high)
 
-#define MS1 8
+#define MS1 8         // Pins for configuring the A4988 drivers
 #define MS2 9
 #define MS3 10
 
-#define stepPin 11
+#define stepPin 11    // Pins to send instructions to the A4988 driver
 #define dirPin  12
 
-struct spVector{  // Spherical Vector Coords
+#define servoPin 5    // Pin for connecting the servo
+#define servoMin 100  // Minimum Pulse Width in microseconds
+#define servoMax 200  // Maximum Pulse Width in microseconds
+
+// Spherical Vector Struct to store given angles
+struct spVector{
     float phi;
     float theta;
 }; typedef spVector spVector;
-
 
 // Variables for driving the stepper motor
 int  dely    = 1000;
@@ -27,6 +32,8 @@ int  totSteps = 0;
 const float totAng = 315;
 float stpsPerAng = 0;
 
+Servo servo;
+
 spVector currVec = {.phi=0, .theta=0};
 
 spVector P0T0  = {.phi=0, .theta=0};
@@ -37,13 +44,16 @@ spVector P60T0 = {.phi=0, .theta=0};
 
 
 void setup() {
-    pinMode(stepPin, OUTPUT);
-    pinMode(dirPin,  OUTPUT);
-    pinMode(MS1,     OUTPUT);
-    pinMode(MS2,     OUTPUT);
-    pinMode(MS3,     OUTPUT);
+    pinMode(stepPin,  OUTPUT);
+    pinMode(dirPin,   OUTPUT);
+    pinMode(MS1,      OUTPUT);
+    pinMode(MS2,      OUTPUT);
+    pinMode(MS3,      OUTPUT);
+    pinMode(servoPin, OUTPUT);
 
     pinMode(limitSW, INPUT);
+
+    servo.attatch(servoPin, servoMin, servoMax);
 
     Serial.begin(9600);
 
@@ -85,7 +95,8 @@ void home() {
 
 int drive(spVector vector) {
     /*
-    function to drive the stepper motor
+    function to drive the Stepper Motor and Servo
+    Servo will drive phi, stepper motor drives theta
     returns: 
         0 for error (not implemented)
         1 for completion of instructions
@@ -94,6 +105,10 @@ int drive(spVector vector) {
 
     int i; bool interrupt = 0;
 
+    // ---------- Driving Servo Motor ----------
+    servo.write(vector.phi)
+
+    // ---------- Driving Stepper Motor ----------
     // Calculate Variables
     float deltaTheta = vector.theta - currVec.theta;
     int   noSteps    = round(abs(deltaTheta)*stpsPerAng);
