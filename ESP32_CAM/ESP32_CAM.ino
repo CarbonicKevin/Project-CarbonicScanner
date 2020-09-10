@@ -17,7 +17,7 @@ const char* password = "12345678";  //Enter Password here
 WebServer server(80);
 
 // interrupt pin
-const int intPin = 16;
+#define intPin 14
 bool intVal = 0;
 
 void setup() {
