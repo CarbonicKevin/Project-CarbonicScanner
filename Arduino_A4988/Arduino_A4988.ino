@@ -3,14 +3,14 @@
 
 #define limitSWPin 7  // pin for reading the limit switches (Pull Down; active high)
 
-#define MS1 8         // Pins for configuring the A4988 drivers
-#define MS2 9
-#define MS3 10
+#define MS1 11         // Pins for configuring the A4988 drivers
+#define MS2 10
+#define MS3  9
 
-#define stepPin 11    // Pins to send instructions to the A4988 driver
-#define dirPin  12
+#define stepPin 6    // Pins to send instructions to the A4988 driver
+#define dirPin  5
 
-#define servoPin 6    // Pin for connecting the servo
+#define servoPin 4    // Pin for connecting the servo
 #define servoMin 100  // Minimum Pulse Width in microseconds
 #define servoMax 200  // Maximum Pulse Width in microseconds
 
@@ -42,6 +42,7 @@ spVector P30T0 = {.phi=90, .theta=60};
 spVector P45T0 = {.phi=90, .theta=90};
 spVector P60T0 = {.phi=90, .theta=120};
 
+SoftwareSerial ESPSerial(3, 2);
 
 void setup() {
     pinMode(stepPin,  OUTPUT);
@@ -56,11 +57,18 @@ void setup() {
     servo.attach(servoPin, servoMin, servoMax);
 
     Serial.begin(9600);
+    ESPSerial.begin(9600);
 
-    home();
+    //home();
 }
 
 void loop() {
+    if (Serial.available()) {
+        ESPSerial.write(Serial.read());
+    }
+    else if (ESPSerial.available()) {
+        Serial.write(ESPSerial.read());
+    }
 }
 
 void home() {
