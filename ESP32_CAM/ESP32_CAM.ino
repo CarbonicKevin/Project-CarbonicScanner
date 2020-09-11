@@ -1,13 +1,17 @@
-// Learning From                https://www.instructables.com/id/IOT-Made-Simple-Playing-With-the-ESP32-on-Arduino-/
-// Learning From                https://randomnerdtutorials.com/esp32-web-server-arduino-ide/
-// Learning From                https://searchnetworking.techtarget.com/definition/TCP-IP
-// Code From                    https://lastminuteengineers.com/creating-esp32-web-server-arduino-ide/
-// Official Documentation       https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/
-// Official Github              https://github.com/espressif/arduino-esp32
-// Bonus: OLED 0.91 inch 128x32 https://www.instructables.com/id/Tutorial-to-Interface-OLED-091inch-128x32-With-Ard/
+/*********
+  Rui Santos
+  Complete project details at https://RandomNerdTutorials.com/esp32-cam-take-photo-display-web-server/
+  
+  IMPORTANT!!! 
+   - Select Board "AI Thinker ESP32-CAM"
+   - GPIO 0 must be connected to GND to upload a sketch
+   - After connecting GPIO 0 to GND, press the ESP32-CAM on-board RESET button to put your board in flashing mode
+  
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+*********/
 
-#include <WiFi.h>
-#include <ESPAsyncWebServer.h>
+#include "WiFi.h"
 #include "esp_camera.h"
 #include "esp_timer.h"
 #include "img_converters.h"
@@ -15,9 +19,19 @@
 #include "soc/soc.h"           // Disable brownour problems
 #include "soc/rtc_cntl_reg.h"  // Disable brownour problems
 #include "driver/rtc_io.h"
+#include <ESPAsyncWebServer.h>
 #include <StringArray.h>
 #include <SPIFFS.h>
 #include <FS.h>
+
+// Replace with your network credentials
+const char* ssid =     "ReinforcedInternet";
+const char* password = "kjhsy09857";
+
+// Create AsyncWebServer object on port 80
+AsyncWebServer server(80);
+
+boolean takeNewPhoto = false;
 
 // Photo File Name to save in SPIFFS
 #define FILE_PHOTO "/photo.jpg"
@@ -39,23 +53,6 @@
 #define VSYNC_GPIO_NUM    25
 #define HREF_GPIO_NUM     23
 #define PCLK_GPIO_NUM     22
-
-// Needed Pins
-#define intPin 14
-#define flashPin 4
-
-
-/* Put your SSID & Password */
-const char* ssid     = "ESP32";  // Enter SSID here
-const char* password = "12345678";  //Enter Password here
-
-boolean takeNewPhoto = false;
-
-// declare an object of WebServer library
-AsyncWebServer server(80);
-
-// interrupt pin
-bool intVal = 0;
 
 const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML><html>
@@ -98,15 +95,27 @@ const char index_html[] PROGMEM = R"rawliteral(
 </html>)rawliteral";
 
 void setup() {
-  pinMode(flashPin, OUTPUT);
-  pinMode(intPin, INPUT);
-  attachInterrupt(intPin, ISR, CHANGE);
-  digitalWrite(flashPin, 1);
-
+  // Serial port for debugging purposes
   Serial.begin(9600);
-  WiFi.softAP(ssid, password);
-  IPAddress local_ip = WiFi.softAPIP();
-  delay(1000);
+
+  // Connect to Wi-Fi
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.println("Connecting to WiFi...");
+  }
+  if (!SPIFFS.begin(true)) {
+    Serial.println("An Error has occurred while mounting SPIFFS");
+    ESP.restart();
+  }
+  else {
+    delay(500);
+    Serial.println("SPIFFS mounted successfully");
+  }
+
+  // Print ESP32 Local IP Address
+  Serial.print("IP Address: http://");
+  Serial.println(WiFi.localIP());
 
   // Turn-off the 'brownout detector'
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
@@ -164,11 +173,9 @@ void setup() {
     request->send(SPIFFS, FILE_PHOTO, "image/jpg", false);
   });
 
-
+  // Start server
   server.begin();
-  Serial.println("Server Started:");
-  Serial.print("IP: ");
-  Serial.print(local_ip) ;
+
 }
 
 void loop() {
@@ -225,4 +232,3 @@ void capturePhotoSaveSpiffs( void ) {
     ok = checkPhoto(SPIFFS);
   } while ( !ok );
 }
-void ISR() {Serial.println("LIMIT_SW_INTERRUPT");}
