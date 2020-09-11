@@ -22,7 +22,7 @@ bool intVal = 0;
 
 void setup() {
   pinMode(intPin, INPUT);
-  //attachInterrupt(intPin, handle_OnConnect, CHANGE);
+  attachInterrupt(intPin, ISR, CHANGE);
 
   Serial.begin(9600);
   WiFi.softAP(ssid, password);
@@ -44,13 +44,14 @@ void loop() {
 
 void handle_OnConnect() {
   intVal = digitalRead(intPin);
-  server.send(200, "text/html", SendHTML()); 
-  Serial.println(intVal);
+  server.send(200, "text/html", SendHTML());
 }
 
 void handle_NotFound(){
   server.send(404, "text/plain", "Not found");
 }
+
+void ISR() {Serial.println("LIMIT_SW_INTERRUPT");}
 
 String SendHTML(){
   String ptr = "<!DOCTYPE html> <html>\n";
@@ -63,5 +64,4 @@ String SendHTML(){
   ptr +="</body>\n";
   ptr +="</html>\n";
   return(ptr);
-
 }

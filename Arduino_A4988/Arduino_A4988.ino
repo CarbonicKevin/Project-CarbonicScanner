@@ -59,16 +59,18 @@ void setup() {
     Serial.begin(9600);
     ESPSerial.begin(9600);
 
-    //home();
+    home();
 }
 
 void loop() {
+    /*
     if (Serial.available()) {
         ESPSerial.write(Serial.read());
     }
     else if (ESPSerial.available()) {
         Serial.write(ESPSerial.read());
     }
+    */
 }
 
 void home() {
@@ -77,22 +79,22 @@ void home() {
 
     // drive one direction at full speed until limitA is hit
     digitalWrite(dirPin, 1); setStpSize(1);
-    while (!digitalRead(limitSWPin)) {step();}
+    while (!SWCheck()) {step();}
 
     // drive back slowly until switch is unpressed, continue for buffer steps
     digitalWrite(dirPin, 0); setStpSize(stpSize);
-    while (digitalRead(limitSWPin)) {step();}
+    while (SWCheck()) {step();}
     for   (i=0; i<buffer; i++) {step();}
 
     // drive towards limitA slowly, stop at limit, set as origin
     digitalWrite(dirPin, 1); setStpSize(stpSize);
-    while (!digitalRead(limitSWPin)) {step();}
+    while (!SWCheck()) {step();}
     totSteps = 0;
 
     // drive to the other side at slow speed until limitB
     digitalWrite(dirPin, 0); setStpSize(stpSize);
-    while (digitalRead(limitSWPin))  {step(); totSteps++;} // Buffer to allow for 'unclick'
-    while (!digitalRead(limitSWPin)) {step(); totSteps++;}
+    while (SWCheck())  {step(); totSteps++;} // Buffer to allow for 'unclick'
+    while (!SWCheck()) {step(); totSteps++;}
     Serial.println(totSteps);
     
     // Set known variables
@@ -129,7 +131,7 @@ int drive(spVector vector) {
 
     digitalWrite(dirPin, dir); setStpSize(stpSize);
     for (i=0; i<totSteps; i++) {
-        if (digitalRead(limitSWPin)) {interrupt=1; break;} // if limit switch is pressed too early, raise interrupt, break
+        if (SWCheck()) {interrupt=1; break;} // if limit switch is pressed too early, raise interrupt, break
         step();
     }
 
@@ -146,6 +148,10 @@ int drive(spVector vector) {
 
 }
     
+bool SWCheck() {
+    if (ESPSerial.available()) {if (ESPSerial.read() == "LIMIT_SW_INTERRUPT") {return(1);}}
+    return(0);
+}
 
 void setStpSize(int size) {
     // set step size pins on the A4988
@@ -161,7 +167,6 @@ void step() {
     digitalWrite(stepPin, LOW);
     delayMicroseconds(dely);
 }
-
 
 
 
