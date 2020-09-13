@@ -54,6 +54,9 @@ boolean takeNewPhoto = false;
 #define HREF_GPIO_NUM     23
 #define PCLK_GPIO_NUM     22
 
+#define intPin   14
+#define flashPin 4
+
 const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML><html>
 <head>
@@ -97,6 +100,11 @@ const char index_html[] PROGMEM = R"rawliteral(
 void setup() {
   // Serial port for debugging purposes
   Serial.begin(9600);
+
+  pinMode(intPin, INPUT);
+  pinMode(flashPin, OUTPUT);
+  digitalWrite(flashPin, 1);
+  attachInterrupt(intPin, ISR, CHANGE);
 
   // Connect to Wi-Fi
   WiFi.begin(ssid, password);
@@ -184,6 +192,12 @@ void loop() {
     takeNewPhoto = false;
   }
   delay(1);
+}
+
+void ISR() {
+  if (digitalRead(intPin) == 1) {Serial.println("LIMIT_SW_INTERRUPT_HIGH");}
+  else {Serial.println("LIMIT_SW_INTERRUPT_LOW");}
+  delay(10);
 }
 
 // Check if photo capture was successful

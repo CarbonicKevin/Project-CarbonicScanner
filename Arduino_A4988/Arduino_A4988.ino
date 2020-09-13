@@ -148,9 +148,13 @@ int drive(spVector vector) {
 
 }
     
-bool SWCheck() {
-    if (ESPSerial.available()) {if (ESPSerial.read() == "LIMIT_SW_INTERRUPT") {return(1);}}
-    return(0);
+int SWCheck() {
+    if (ESPSerial.available()) {
+        String interruptString = ESPSerial.read()
+        if      (ESPSerial.read() == "LIMIT_SW_INTERRUPT_HIGH") {return(1);}
+        else if (ESPSerial.read() == "LIMIT_SW_INTERRUPT_LOW" ) {return(0);}
+    }
+    return(-1);
 }
 
 void setStpSize(int size) {
