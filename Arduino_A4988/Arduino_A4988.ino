@@ -6,6 +6,7 @@
 #define MS1 11         // Pins for configuring the A4988 drivers
 #define MS2 10
 #define MS3  9
+#define stepEn 12
 
 #define stepPin 6    // Pins to send instructions to the A4988 driver
 #define dirPin  5
@@ -54,11 +55,11 @@ void setup() {
 
     pinMode(limitSWPin, INPUT);
 
-    servo.attach(servoPin, servoMin, servoMax);
-
     Serial.begin(9600);
     ESPSerial.begin(9600);
 
+    Serial.println("Beginning...");
+    
     home();
 }
 
@@ -78,23 +79,27 @@ void home() {
     int i;
 
     // drive one direction at full speed until limitA is hit
+    Serial.println("Homing Step A");
     digitalWrite(dirPin, 1); setStpSize(1);
-    while (!SWCheck()) {step();}
+    while (SWCheck()!="LIMIT_SW_INTERRUPT_HIGH") {step();}
 
     // drive back slowly until switch is unpressed, continue for buffer steps
+    Serial.println("Homing Step B");
     digitalWrite(dirPin, 0); setStpSize(stpSize);
-    while (SWCheck()) {step();}
+    while (SWCheck()!="LIMIT_SW_INTERRUPT_LOW" ) {step();}
     for   (i=0; i<buffer; i++) {step();}
 
     // drive towards limitA slowly, stop at limit, set as origin
+    Serial.println("Homing Step C");
     digitalWrite(dirPin, 1); setStpSize(stpSize);
-    while (!SWCheck()) {step();}
+    while (SWCheck()!="LIMIT_SW_INTERRUPT_HIGH") {step();}
     totSteps = 0;
 
     // drive to the other side at slow speed until limitB
+    Serial.println("Homing Step D");
     digitalWrite(dirPin, 0); setStpSize(stpSize);
-    while (SWCheck())  {step(); totSteps++;} // Buffer to allow for 'unclick'
-    while (!SWCheck()) {step(); totSteps++;}
+    while (SWCheck()!="LIMIT_SW_INTERRUPT_LOW" ) {step(); totSteps++;} // Buffer to allow for 'unclick'
+    while (SWCheck()!="LIMIT_SW_INTERRUPT_HIGH") {step(); totSteps++;}
     Serial.println(totSteps);
     
     // Set known variables
@@ -119,7 +124,10 @@ int drive(spVector vector) {
     int i; bool interrupt = 0;
 
     // ---------- Driving Servo Motor ----------
+    Serial.println("Driving Servo");
+    servo.attach(servoPin, servoMin, servoMax);
     servo.write(vector.phi);
+    //servo.detach();
 
     // ---------- Driving Stepper Motor ----------
     // Calculate Variables
@@ -131,7 +139,7 @@ int drive(spVector vector) {
 
     digitalWrite(dirPin, dir); setStpSize(stpSize);
     for (i=0; i<totSteps; i++) {
-        if (SWCheck()) {interrupt=1; break;} // if limit switch is pressed too early, raise interrupt, break
+        if (SWCheck()=="LIMIT_SW_INTERRUPT_HIGH") {interrupt=1; break;} // if limit switch is pressed too early, raise interrupt, break
         step();
     }
 
@@ -148,13 +156,15 @@ int drive(spVector vector) {
 
 }
     
-int SWCheck() {
+String SWCheck() {
     if (ESPSerial.available()) {
-        String interruptString = ESPSerial.read()
-        if      (ESPSerial.read() == "LIMIT_SW_INTERRUPT_HIGH") {return(1);}
-        else if (ESPSerial.read() == "LIMIT_SW_INTERRUPT_LOW" ) {return(0);}
+        String interruptString = ESPSerial.readString();
+        interruptString.trim();
+        if      (interruptString == "LIMIT_SW_INTERRUPT_HIGH") {return(interruptString);}
+        else if (interruptString == "LIMIT_SW_INTERRUPT_LOW" ) {return(interruptString);}
+        Serial.println(interruptString);
     }
-    return(-1);
+    return("NO_CHANGE");
 }
 
 void setStpSize(int size) {
@@ -171,6 +181,3 @@ void step() {
     digitalWrite(stepPin, LOW);
     delayMicroseconds(dely);
 }
-
-
-

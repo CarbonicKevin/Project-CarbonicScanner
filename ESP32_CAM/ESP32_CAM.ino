@@ -11,6 +11,8 @@
   copies or substantial portions of the Software.
 *********/
 
+// Modifications to resolve interrupt panic issue: https://www.gitmemory.com/issue/espressif/esp-who/90/518142982
+
 #include "WiFi.h"
 #include "esp_camera.h"
 #include "esp_timer.h"
@@ -56,6 +58,9 @@ boolean takeNewPhoto = false;
 
 #define intPin   14
 #define flashPin 4
+
+int prevIntVal = 0;
+int currIntVal = 0;
 
 const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML><html>
@@ -104,7 +109,6 @@ void setup() {
   pinMode(intPin, INPUT);
   pinMode(flashPin, OUTPUT);
   digitalWrite(flashPin, 1);
-  attachInterrupt(intPin, ISR, CHANGE);
 
   // Connect to Wi-Fi
   WiFi.begin(ssid, password);
@@ -191,13 +195,19 @@ void loop() {
     capturePhotoSaveSpiffs();
     takeNewPhoto = false;
   }
-  delay(1);
+
+  currIntVal = digitalRead(intPin);
+  //Serial.println(currIntVal, prevIntVal);
+  if (currIntVal != prevIntVal) {ISR();}
+  prevIntVal = currIntVal;
+
+  delay(50);
 }
 
 void ISR() {
   if (digitalRead(intPin) == 1) {Serial.println("LIMIT_SW_INTERRUPT_HIGH");}
   else {Serial.println("LIMIT_SW_INTERRUPT_LOW");}
-  delay(10);
+  delay(10); 
 }
 
 // Check if photo capture was successful
