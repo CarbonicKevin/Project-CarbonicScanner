@@ -12,7 +12,7 @@
 #define dirPin  5
 
 #define servoPin 4    // Pin for connecting the servo
-#define servoMin 100  // Minimum Pulse Width in microseconds
+#define servoMin 110  // Minimum Pulse Width in microseconds
 #define servoMax 200  // Maximum Pulse Width in microseconds
 
 // Spherical Vector Struct to store given angles
@@ -37,11 +37,29 @@ Servo servo;
 
 spVector currVec = {.phi=0, .theta=0};
 
-spVector P0T0  = {.phi=90, .theta=0};
-spVector P15T0 = {.phi=90, .theta=30};
-spVector P30T0 = {.phi=90, .theta=60};
-spVector P45T0 = {.phi=90, .theta=90};
-spVector P60T0 = {.phi=90, .theta=120};
+spVector P0T0 = {.phi=90 , .theta=0  };
+
+spVector P0T45     = {.phi= 90  , .theta= 45 };
+spVector P0T90     = {.phi= 90  , .theta= 90 };
+spVector P0T135    = {.phi= 90  , .theta= 135};
+spVector P0TM45    = {.phi= 90  , .theta=-45 };
+spVector P0TM90    = {.phi= 90  , .theta=-90 };
+spVector P0TM135   = {.phi= 90  , .theta=-135};
+
+spVector P60T45    = {.phi= 150 , .theta= 45 };
+spVector P60T90    = {.phi= 150 , .theta= 90 };
+spVector P60T135   = {.phi= 150 , .theta= 135};
+spVector P60TM45   = {.phi= 150 , .theta=-45 };
+spVector P60TM90   = {.phi= 150 , .theta=-90 };
+spVector P60TM135  = {.phi= 150 , .theta=-135};
+
+spVector PM60T45   = {.phi= 30  , .theta= 45 };
+spVector PM60T90   = {.phi= 30  , .theta= 90 };
+spVector PM60T135  = {.phi= 30  , .theta= 135};
+spVector PM60TM45  = {.phi= 30  , .theta=-45 };
+spVector PM60TM90  = {.phi= 30  , .theta=-90 };
+spVector PM60TM135 = {.phi= 30  , .theta=-135};
+
 
 SoftwareSerial ESPSerial(3, 2);
 
@@ -59,19 +77,41 @@ void setup() {
     ESPSerial.begin(9600);
 
     Serial.println("Beginning...");
-    
+    delay(5000);
+    servo.attach(servoPin, servoMin, servoMax);
     home();
 }
 
 void loop() {
-    /*
+    String readSerial;
     if (Serial.available()) {
-        ESPSerial.write(Serial.read());
+        readSerial = Serial.readString();
+        readSerial.trim();
+ 
+        if (readSerial == "P0T0"   ) {drive(P0T0   );}
+
+        else if (readSerial == "P0T45"    ) {drive(P0T45    );}
+        else if (readSerial == "P0T90"    ) {drive(P0T90    );}
+        else if (readSerial == "P0T135"   ) {drive(P0T135   );}
+        else if (readSerial == "P0TM45"   ) {drive(P0TM45   );}
+        else if (readSerial == "P0TM90"   ) {drive(P0TM90   );}
+        else if (readSerial == "P0TM135"  ) {drive(P0TM135  );}
+        
+        else if (readSerial == "P60T45"   ) {drive(P60T45   );}
+        else if (readSerial == "P60T90"   ) {drive(P60T90   );}
+        else if (readSerial == "P60T135"  ) {drive(P60T135  );}
+        else if (readSerial == "P60TM45"  ) {drive(P60TM45  );}
+        else if (readSerial == "P60TM90"  ) {drive(P60TM90  );}
+        else if (readSerial == "P60TM135" ) {drive(P60TM135 );}
+
+        else if (readSerial == "PM60T45"  ) {drive(PM60T45  );}
+        else if (readSerial == "PM60T90"  ) {drive(PM60T90  );}
+        else if (readSerial == "PM60T135" ) {drive(PM60T135 );}
+        else if (readSerial == "PM60TM45" ) {drive(PM60TM45 );}
+        else if (readSerial == "PM60TM90" ) {drive(PM60TM90 );}
+        else if (readSerial == "PM60TM135") {drive(PM60TM135);}
+        
     }
-    else if (ESPSerial.available()) {
-        Serial.write(ESPSerial.read());
-    }
-    */
 }
 
 void home() {
@@ -125,9 +165,7 @@ int drive(spVector vector) {
 
     // ---------- Driving Servo Motor ----------
     Serial.println("Driving Servo");
-    servo.attach(servoPin, servoMin, servoMax);
     servo.write(vector.phi);
-    //servo.detach();
 
     // ---------- Driving Stepper Motor ----------
     // Calculate Variables
