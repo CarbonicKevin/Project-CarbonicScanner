@@ -39,39 +39,43 @@ spVector currVec = {.phi=0, .theta=0};
 
 spVector P0T0 = {.phi=90 , .theta=0  };
 
-spVector P0T45     = {.phi= 90  , .theta= 45 };
-spVector P0T90     = {.phi= 90  , .theta= 90 };
-spVector P0T135    = {.phi= 90  , .theta= 135};
-spVector P0TM45    = {.phi= 90  , .theta=-45 };
-spVector P0TM90    = {.phi= 90  , .theta=-90 };
-spVector P0TM135   = {.phi= 90  , .theta=-135};
+spVector P0T45     = {.phi= 90.0  , .theta=   45.0};
+spVector P0T90     = {.phi= 90.0  , .theta=   90.0};
+spVector P0T135    = {.phi= 90.0  , .theta=  135.0};
+spVector P0TM45    = {.phi= 90.0  , .theta=  -45.0};
+spVector P0TM90    = {.phi= 90.0  , .theta=  -90.0};
+spVector P0TM135   = {.phi= 90.0  , .theta= -135.0};
 
-spVector P60T45    = {.phi= 150 , .theta= 45 };
-spVector P60T90    = {.phi= 150 , .theta= 90 };
-spVector P60T135   = {.phi= 150 , .theta= 135};
-spVector P60TM45   = {.phi= 150 , .theta=-45 };
-spVector P60TM90   = {.phi= 150 , .theta=-90 };
-spVector P60TM135  = {.phi= 150 , .theta=-135};
+spVector P45T45    = {.phi= 135.0 , .theta=   45.0};
+spVector P45T90    = {.phi= 135.0 , .theta=   90.0};
+spVector P45T135   = {.phi= 135.0 , .theta=  135.0};
+spVector P45TM45   = {.phi= 135.0 , .theta=  -45.0};
+spVector P45TM90   = {.phi= 135.0 , .theta=  -90.0};
+spVector P45TM135  = {.phi= 135.0 , .theta= -135.0};
 
-spVector PM60T45   = {.phi= 30  , .theta= 45 };
-spVector PM60T90   = {.phi= 30  , .theta= 90 };
-spVector PM60T135  = {.phi= 30  , .theta= 135};
-spVector PM60TM45  = {.phi= 30  , .theta=-45 };
-spVector PM60TM90  = {.phi= 30  , .theta=-90 };
-spVector PM60TM135 = {.phi= 30  , .theta=-135};
+spVector PM45T45   = {.phi= 45.0  , .theta=   45.0};
+spVector PM45T90   = {.phi= 45.0  , .theta=   90.0};
+spVector PM45T135  = {.phi= 45.0  , .theta=  135.0};
+spVector PM45TM45  = {.phi= 45.0  , .theta=  -45.0};
+spVector PM45TM90  = {.phi= 45.0  , .theta=  -90.0};
+spVector PM45TM135 = {.phi= 45.0  , .theta= -135.0};
 
 
 SoftwareSerial ESPSerial(3, 2);
 
 void setup() {
+    String readSerial;
     pinMode(stepPin,  OUTPUT);
     pinMode(dirPin,   OUTPUT);
     pinMode(MS1,      OUTPUT);
     pinMode(MS2,      OUTPUT);
     pinMode(MS3,      OUTPUT);
     pinMode(servoPin, OUTPUT);
+    pinMode(stepEn,   OUTPUT);
 
     pinMode(limitSWPin, INPUT);
+
+    digitalWrite(stepEn,1);
 
     Serial.begin(9600);
     ESPSerial.begin(9600);
@@ -79,14 +83,77 @@ void setup() {
     Serial.println("Beginning...");
     delay(5000);
     servo.attach(servoPin, servoMin, servoMax);
-    home();
+    digitalWrite(stepEn, 0);
+
+    while (1) {
+      if (Serial.available()) {
+        Serial.println("Type 'start' to begin calibration step");
+        readSerial = Serial.readString();
+        readSerial.trim();
+        if (readSerial=="start") {
+          Serial.println("Starting Calibration Step...");
+          home();
+          Serial.println("Finished Calibration...");
+          break; 
+        }
+      }
+    }
 }
 
 void loop() {
     String readSerial;
+    
     if (Serial.available()) {
+        Serial.println("Type start to run through all the nodes");
         readSerial = Serial.readString();
         readSerial.trim();
+
+        if (readSerial == "start") {
+          drive(P0T0     );
+          drive(P0TM135  );
+          waitForInput()  ;
+          drive(P0TM90   );
+          waitForInput()  ;
+          drive(P0TM45   );
+          waitForInput()  ;
+          drive(P0T0     );
+          waitForInput()  ;
+          drive(P0T45    );
+          waitForInput()  ;
+          drive(P0T90    );
+          waitForInput()  ;
+          drive(P0T135   );
+          waitForInput()  ;
+
+          drive(P0T0     );
+          drive(P45TM135 );
+          waitForInput()  ;
+          drive(P45TM90  );
+          waitForInput()  ;
+          drive(P45TM45  );
+          waitForInput()  ;
+          drive(P45T45   );
+          waitForInput()  ;
+          drive(P45T90   );
+          waitForInput()  ;
+          drive(P45T135  );
+          waitForInput()  ;
+
+          drive(P0T0     );
+          drive(PM45TM135);
+          waitForInput()  ;
+          drive(PM45TM90 );
+          waitForInput()  ;
+          drive(PM45TM45 );
+          waitForInput()  ;
+          drive(PM45T45  );
+          waitForInput()  ;
+          drive(PM45T90  );
+          waitForInput()  ;
+          drive(PM45T135 );
+          waitForInput()  ;        
+        }
+        Serial.println("Ran though all nodes, switching to manual mode...");
  
         if (readSerial == "P0T0"   ) {drive(P0T0   );}
 
@@ -97,19 +164,19 @@ void loop() {
         else if (readSerial == "P0TM90"   ) {drive(P0TM90   );}
         else if (readSerial == "P0TM135"  ) {drive(P0TM135  );}
         
-        else if (readSerial == "P60T45"   ) {drive(P60T45   );}
-        else if (readSerial == "P60T90"   ) {drive(P60T90   );}
-        else if (readSerial == "P60T135"  ) {drive(P60T135  );}
-        else if (readSerial == "P60TM45"  ) {drive(P60TM45  );}
-        else if (readSerial == "P60TM90"  ) {drive(P60TM90  );}
-        else if (readSerial == "P60TM135" ) {drive(P60TM135 );}
+        else if (readSerial == "P45T45"   ) {drive(P45T45   );}
+        else if (readSerial == "P45T90"   ) {drive(P45T90   );}
+        else if (readSerial == "P45T135"  ) {drive(P45T135  );}
+        else if (readSerial == "P45TM45"  ) {drive(P45TM45  );}
+        else if (readSerial == "P45TM90"  ) {drive(P45TM90  );}
+        else if (readSerial == "P45TM135" ) {drive(P45TM135 );}
 
-        else if (readSerial == "PM60T45"  ) {drive(PM60T45  );}
-        else if (readSerial == "PM60T90"  ) {drive(PM60T90  );}
-        else if (readSerial == "PM60T135" ) {drive(PM60T135 );}
-        else if (readSerial == "PM60TM45" ) {drive(PM60TM45 );}
-        else if (readSerial == "PM60TM90" ) {drive(PM60TM90 );}
-        else if (readSerial == "PM60TM135") {drive(PM60TM135);}
+        else if (readSerial == "PM45T45"  ) {drive(PM45T45  );}
+        else if (readSerial == "PM45T90"  ) {drive(PM45T90  );}
+        else if (readSerial == "PM45T135" ) {drive(PM45T135 );}
+        else if (readSerial == "PM45TM45" ) {drive(PM45TM45 );}
+        else if (readSerial == "PM45TM90" ) {drive(PM45TM90 );}
+        else if (readSerial == "PM45TM135") {drive(PM45TM135);}
         
     }
 }
@@ -120,20 +187,8 @@ void home() {
 
     // drive one direction at full speed until limitA is hit
     Serial.println("Homing Step A");
-    digitalWrite(dirPin, 1); setStpSize(1);
+    digitalWrite(dirPin, 1); setStpSize(2);
     while (SWCheck()!="LIMIT_SW_INTERRUPT_HIGH") {step();}
-
-    // drive back slowly until switch is unpressed, continue for buffer steps
-    Serial.println("Homing Step B");
-    digitalWrite(dirPin, 0); setStpSize(stpSize);
-    while (SWCheck()!="LIMIT_SW_INTERRUPT_LOW" ) {step();}
-    for   (i=0; i<buffer; i++) {step();}
-
-    // drive towards limitA slowly, stop at limit, set as origin
-    Serial.println("Homing Step C");
-    digitalWrite(dirPin, 1); setStpSize(stpSize);
-    while (SWCheck()!="LIMIT_SW_INTERRUPT_HIGH") {step();}
-    totSteps = 0;
 
     // drive to the other side at slow speed until limitB
     Serial.println("Homing Step D");
@@ -143,8 +198,8 @@ void home() {
     Serial.println(totSteps);
     
     // Set known variables
-    currVec.theta = -totAng/2.0;
-    stpsPerAng   = totSteps/totAng;
+    currVec.theta = totAng/2.0;
+    stpsPerAng    = totSteps/totAng;
 
     // drive to home
     drive(P0T0);
@@ -169,23 +224,27 @@ int drive(spVector vector) {
 
     // ---------- Driving Stepper Motor ----------
     // Calculate Variables
-    float deltaTheta = vector.theta - currVec.theta;
-    int   noSteps    = round(abs(deltaTheta)*stpsPerAng);
+    float deltaTheta = (vector.theta - currVec.theta);
+    int   noSteps    = round(abs(deltaTheta)*stpsPerAng)%(totSteps);
 
     if   (deltaTheta >= 0) {dir = 0;}
     else                   {dir = 1;}
+  
+    Serial.print(deltaTheta);
+    Serial.print(", ");
+    Serial.println(noSteps);
 
     digitalWrite(dirPin, dir); setStpSize(stpSize);
-    for (i=0; i<totSteps; i++) {
+    for (i=0; i<noSteps; i++) {
         if (SWCheck()=="LIMIT_SW_INTERRUPT_HIGH") {interrupt=1; break;} // if limit switch is pressed too early, raise interrupt, break
         step();
     }
 
     // update new position
     if (dir==0) {
-        currVec.theta += i*stpsPerAng;
+        currVec.theta += i/stpsPerAng;
     } else {
-        currVec.theta -= i*stpsPerAng;
+        currVec.theta -= i/stpsPerAng;
     }
 
     // return with correct code
@@ -218,4 +277,16 @@ void step() {
     delayMicroseconds(dely);
     digitalWrite(stepPin, LOW);
     delayMicroseconds(dely);
+}
+
+void waitForInput() {
+    String readSerial;
+    digitalWrite(stepEn, 1);
+    while (1) {
+      if (Serial.available()) {
+        readSerial = Serial.readString();
+        readSerial.trim();
+        if (readSerial == "next") {digitalWrite(stepEn, 0); break;};
+      }
+    }
 }
